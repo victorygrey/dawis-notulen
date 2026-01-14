@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   LayoutDashboard, 
@@ -6,7 +5,6 @@ import {
   FileText, 
   CheckSquare, 
   TrendingUp, 
-  Settings, 
   Users,
   Briefcase,
   PlaneTakeoff,
@@ -23,7 +21,7 @@ export const DIVISIONS = [
   { id: DivisionType.OPRS, name: 'Operasional', icon: <PlaneTakeoff size={20} /> },
   { id: DivisionType.KEUANGAN, name: 'Keuangan', icon: <Wallet size={20} /> },
   { id: DivisionType.LOGISTIK, name: 'Logistik - PU', icon: <Package size={20} /> },
-  { id: DivisionType.IT, name: 'Information Tech', icon: <Cpu size={20} /> },
+  { id: DivisionType.IT, name: 'Information Tech', icon: <Cpu size={20} /> }
 ];
 
 export const MOCK_USER: User = {
@@ -61,7 +59,14 @@ export const MOCK_ACCOUNTS = [
       id: 'u3',
       name: 'Hj. Siti Aminah',
       role: Role.DIRECTOR,
-      divisions: Object.values(DivisionType)
+      divisions: [
+        DivisionType.HRD,
+        DivisionType.PDP,
+        DivisionType.OPRS,
+        DivisionType.KEUANGAN,
+        DivisionType.LOGISTIK,
+        DivisionType.IT
+      ]
     }
   }
 ];
@@ -72,5 +77,5 @@ export const MENU_ITEMS = [
   { id: 'meetings', name: 'Meeting Minutes', icon: <FileText size={20} /> },
   { id: 'approvals', name: 'Approvals', icon: <CheckSquare size={20} /> },
   { id: 'kpi', name: 'KPI Analytics', icon: <TrendingUp size={20} /> },
-  { id: 'division_module', name: 'Divisi Module', icon: <Briefcase size={20} /> },
+  { id: 'division_module', name: 'Divisi Module', icon: <Briefcase size={20} /> }
 ];

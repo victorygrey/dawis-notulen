@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { DivisionType, Role, User } from './types';
+import { DivisionType, User } from './types';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import TaskTracker from './components/TaskTracker';
@@ -15,7 +15,6 @@ const App: React.FC = () => {
   const [activeDivision, setActiveDivision] = useState<DivisionType | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  // Persistence check on mount
   useEffect(() => {
     const savedUser = localStorage.getItem('syncops_user');
     if (savedUser) {
@@ -79,7 +78,7 @@ const App: React.FC = () => {
       <Sidebar 
         activePage={activePage} 
         setActivePage={setActivePage} 
-        activeDivision={activeDivision!}
+        activeDivision={activeDivision || user.divisions[0]}
         setActiveDivision={(div) => setActiveDivision(div)}
         user={user}
         onLogout={handleLogout}
