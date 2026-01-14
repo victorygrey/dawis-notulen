@@ -1,0 +1,7 @@
+{
+  "name": "SyncOps - Integrated Daily Operation Tracker",
+  "description": "A comprehensive operational platform for daily tracking, meeting minutes, task management, and division-specific workflows with multi-level approvals and KPI analysis.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
