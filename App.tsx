@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DivisionType, User } from './types';
 import Sidebar from './components/Sidebar';
@@ -20,8 +19,10 @@ const App: React.FC = () => {
     if (savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
-        setActiveDivision(parsedUser.divisions[0]);
+        if (parsedUser && parsedUser.divisions && parsedUser.divisions.length > 0) {
+          setUser(parsedUser);
+          setActiveDivision(parsedUser.divisions[0]);
+        }
       } catch (e) {
         localStorage.removeItem('syncops_user');
       }
@@ -31,7 +32,9 @@ const App: React.FC = () => {
 
   const handleLogin = (userData: User) => {
     setUser(userData);
-    setActiveDivision(userData.divisions[0]);
+    if (userData.divisions && userData.divisions.length > 0) {
+      setActiveDivision(userData.divisions[0]);
+    }
     localStorage.setItem('syncops_user', JSON.stringify(userData));
   };
 
@@ -43,7 +46,13 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (!user || !activeDivision) return null;
+    if (!user || !activeDivision) {
+      return (
+        <div className="flex items-center justify-center h-64 text-slate-400 italic">
+          No division active. Please select a division.
+        </div>
+      );
+    }
 
     switch (activePage) {
       case 'dashboard':
@@ -64,7 +73,10 @@ const App: React.FC = () => {
   if (isInitializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-medium text-slate-500">Initializing SyncOps...</p>
+        </div>
       </div>
     );
   }
@@ -84,13 +96,13 @@ const App: React.FC = () => {
         onLogout={handleLogout}
       />
       
-      <main className="flex-1 ml-64 p-8 min-h-screen overflow-y-auto">
+      <main className="flex-1 ml-0 md:ml-64 p-4 md:p-8 min-h-screen overflow-y-auto">
         <div className="max-w-7xl mx-auto">
           {renderContent()}
         </div>
         
-        <footer className="mt-12 py-6 border-t border-slate-200 text-center text-slate-400 text-xs font-medium">
-          <p>&copy; {new Date().getFullYear()} SyncOps - Advanced Operational Management System.</p>
+        <footer className="mt-12 py-6 border-t border-slate-200 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+          <p>&copy; {new Date().getFullYear()} SyncOps - Integrated Daily Operation Tracker.</p>
         </footer>
       </main>
     </div>
