@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { MENU_ITEMS, DIVISIONS } from '../constants';
 import { DivisionType, User } from '../types';
