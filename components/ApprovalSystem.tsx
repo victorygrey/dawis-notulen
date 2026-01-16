@@ -96,7 +96,7 @@ const ApprovalSystem: React.FC<{ activeDivision: DivisionType }> = ({ activeDivi
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {filteredApprovals.length > 0 ? filteredApprovals.map((app) => (
+        {filteredApprovals.length > 0 && filteredApprovals.map((app) => (
           <div key={app.id} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
             <div className="p-6 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6">
               <div className="flex-1">
