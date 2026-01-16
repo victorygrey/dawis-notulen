@@ -15,19 +15,25 @@ const App: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('syncops_user');
-    if (savedUser) {
+    const initApp = () => {
       try {
-        const parsedUser = JSON.parse(savedUser);
-        if (parsedUser && parsedUser.divisions && parsedUser.divisions.length > 0) {
-          setUser(parsedUser);
-          setActiveDivision(parsedUser.divisions[0]);
+        const savedUser = localStorage.getItem('syncops_user');
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser);
+          if (parsedUser && parsedUser.divisions && parsedUser.divisions.length > 0) {
+            setUser(parsedUser);
+            setActiveDivision(parsedUser.divisions[0]);
+          }
         }
       } catch (e) {
+        console.warn("Storage cleared due to version mismatch or error");
         localStorage.removeItem('syncops_user');
+      } finally {
+        setIsInitializing(false);
       }
-    }
-    setIsInitializing(false);
+    };
+
+    initApp();
   }, []);
 
   const handleLogin = (userData: User) => {
@@ -45,37 +51,12 @@ const App: React.FC = () => {
     setActivePage('dashboard');
   };
 
-  const renderContent = () => {
-    if (!user || !activeDivision) {
-      return (
-        <div className="flex items-center justify-center h-64 text-slate-400 italic">
-          No division active. Please select a division.
-        </div>
-      );
-    }
-
-    switch (activePage) {
-      case 'dashboard':
-        return <Dashboard user={user} activeDivision={activeDivision} />;
-      case 'activities':
-        return <TaskTracker activeDivision={activeDivision} />;
-      case 'meetings':
-        return <MeetingMinutes activeDivision={activeDivision} />;
-      case 'approvals':
-        return <ApprovalSystem activeDivision={activeDivision} />;
-      case 'division_module':
-        return <DivisionModules activeDivision={activeDivision} />;
-      default:
-        return <Dashboard user={user} activeDivision={activeDivision} />;
-    }
-  };
-
   if (isInitializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm font-medium text-slate-500">Initializing SyncOps...</p>
+          <p className="text-sm font-medium text-slate-500">Menyiapkan Dashboard...</p>
         </div>
       </div>
     );
@@ -85,12 +66,31 @@ const App: React.FC = () => {
     return <Login onLogin={handleLogin} />;
   }
 
+  const currentDiv = activeDivision || user.divisions[0];
+
+  const renderContent = () => {
+    switch (activePage) {
+      case 'dashboard':
+        return <Dashboard user={user} activeDivision={currentDiv} />;
+      case 'activities':
+        return <TaskTracker activeDivision={currentDiv} />;
+      case 'meetings':
+        return <MeetingMinutes activeDivision={currentDiv} />;
+      case 'approvals':
+        return <ApprovalSystem activeDivision={currentDiv} />;
+      case 'division_module':
+        return <DivisionModules activeDivision={currentDiv} />;
+      default:
+        return <Dashboard user={user} activeDivision={currentDiv} />;
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar 
         activePage={activePage} 
         setActivePage={setActivePage} 
-        activeDivision={activeDivision || user.divisions[0]}
+        activeDivision={currentDiv}
         setActiveDivision={(div) => setActiveDivision(div)}
         user={user}
         onLogout={handleLogout}
@@ -102,7 +102,7 @@ const App: React.FC = () => {
         </div>
         
         <footer className="mt-12 py-6 border-t border-slate-200 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-          <p>&copy; {new Date().getFullYear()} SyncOps - Integrated Daily Operation Tracker.</p>
+          <p>&copy; {new Date().getFullYear()} SyncOps - Operational Management System</p>
         </footer>
       </main>
     </div>
