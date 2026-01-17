@@ -27,6 +27,7 @@ export interface User {
   role: Role;
   divisions: DivisionType[];
   email?: string;
+  password?: string;
 }
 
 export enum TaskStatus {

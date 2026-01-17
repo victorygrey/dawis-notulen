@@ -21,8 +21,17 @@ const Sidebar: React.FC<SidebarProps> = ({
   user,
   onLogout
 }) => {
-  // Filter menu items based on user role
+  // Filter menu items based on user role and permissions
   const visibleMenuItems = MENU_ITEMS.filter(item => {
+    // Check for KPI restriction
+    if (item.id === 'kpi') {
+      const isHRD = user.divisions.includes(DivisionType.HRD);
+      const isDirector = user.role === Role.DIRECTOR;
+      const isAdministrator = user.role === Role.MANAGER || user.role === Role.SUBADMIN;
+      return isHRD || isDirector || isAdministrator;
+    }
+
+    // Check for User Management restriction
     if ((item as any).adminOnly) {
       return user.role === Role.MANAGER || user.role === Role.DIRECTOR;
     }
