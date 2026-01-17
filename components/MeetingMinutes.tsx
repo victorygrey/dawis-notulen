@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MeetingMinute, DivisionType } from '../types';
-import { Plus, Search, FileText, UserPlus, MapPin, Clock, X, Save, Sparkles } from 'lucide-react';
+import { Plus, Search, FileText, UserPlus, MapPin, Clock, X, Save, Sparkles, Edit2 } from 'lucide-react';
 import { summarizeMeeting } from '../services/gemini';
 
 const AlertCircleIcon = ({ size }: { size: number }) => (
@@ -14,6 +14,8 @@ const AlertCircleIcon = ({ size }: { size: number }) => (
 const MeetingMinutes: React.FC<{ activeDivision: DivisionType }> = ({ activeDivision }) => {
   const [minutes, setMinutes] = useState<MeetingMinute[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [aiSummary, setAiSummary] = useState<string>('');
   const [isSummarizing, setIsSummarizing] = useState(false);
 
@@ -65,26 +67,7 @@ const MeetingMinutes: React.FC<{ activeDivision: DivisionType }> = ({ activeDivi
     localStorage.setItem('syncops_meetings', JSON.stringify(data));
   };
 
-  const handleAddMeeting = (e: React.FormEvent) => {
-    e.preventDefault();
-    const meeting: MeetingMinute = {
-      purpose: newMeeting.purpose,
-      participants: newMeeting.participants.split(',').map(p => p.trim()),
-      location: newMeeting.location,
-      openingVerse: newMeeting.openingVerse,
-      minutes: newMeeting.minutes,
-      issues: newMeeting.issues,
-      type: newMeeting.type as any,
-      startTime: newMeeting.startTime,
-      endTime: newMeeting.endTime,
-      id: Math.random().toString(36).substring(2, 11),
-      date: new Date().toISOString().split('T')[0],
-      status: 'Proses',
-      division: activeDivision
-    };
-
-    saveMeetings([meeting, ...minutes]);
-    setShowModal(false);
+  const handleOpenAddModal = () => {
     setNewMeeting({
       purpose: '',
       participants: '',
@@ -96,6 +79,60 @@ const MeetingMinutes: React.FC<{ activeDivision: DivisionType }> = ({ activeDivi
       startTime: '09:00',
       endTime: '10:00'
     });
+    setIsEditMode(false);
+    setEditingId(null);
+    setShowModal(true);
+  };
+
+  const handleOpenEditModal = (m: MeetingMinute) => {
+    setNewMeeting({
+      purpose: m.purpose,
+      participants: m.participants.join(', '),
+      location: m.location,
+      openingVerse: m.openingVerse || '',
+      minutes: m.minutes,
+      issues: m.issues,
+      type: m.type,
+      startTime: m.startTime,
+      endTime: m.endTime
+    });
+    setEditingId(m.id);
+    setIsEditMode(true);
+    setShowModal(true);
+  };
+
+  const handleSaveMeeting = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const meetingData = {
+      purpose: newMeeting.purpose,
+      participants: newMeeting.participants.split(',').map(p => p.trim()),
+      location: newMeeting.location,
+      openingVerse: newMeeting.openingVerse,
+      minutes: newMeeting.minutes,
+      issues: newMeeting.issues,
+      type: newMeeting.type as any,
+      startTime: newMeeting.startTime,
+      endTime: newMeeting.endTime,
+      division: activeDivision
+    };
+
+    if (isEditMode && editingId) {
+      const updated = minutes.map(m => m.id === editingId ? { ...m, ...meetingData } : m);
+      saveMeetings(updated);
+    } else {
+      const meeting: MeetingMinute = {
+        ...meetingData,
+        id: Math.random().toString(36).substring(2, 11),
+        date: new Date().toISOString().split('T')[0],
+        status: 'Proses'
+      };
+      saveMeetings([meeting, ...minutes]);
+    }
+
+    setShowModal(false);
+    setIsEditMode(false);
+    setEditingId(null);
   };
 
   const handleSummarize = async (text: string) => {
@@ -123,7 +160,7 @@ const MeetingMinutes: React.FC<{ activeDivision: DivisionType }> = ({ activeDivi
           <p className="text-slate-500">Arsip risalah rapat internal divisi <span className="font-semibold text-indigo-600">{activeDivision}</span></p>
         </div>
         <button 
-          onClick={() => setShowModal(true)}
+          onClick={handleOpenAddModal}
           className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-lg"
         >
           <Plus size={18} />
@@ -134,7 +171,7 @@ const MeetingMinutes: React.FC<{ activeDivision: DivisionType }> = ({ activeDivi
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           {filteredMeetings.length > 0 ? filteredMeetings.map((m) => (
-            <div key={m.id} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow">
+            <div key={m.id} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md transition-shadow relative">
               <div className="p-5 border-b border-slate-50 flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -145,10 +182,19 @@ const MeetingMinutes: React.FC<{ activeDivision: DivisionType }> = ({ activeDivi
                   </div>
                   <h3 className="text-lg font-bold text-slate-800">{m.purpose}</h3>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                  m.status === 'Selesai' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'
-                }`}>
-                  {m.status}
+                <div className="flex flex-col items-end gap-2">
+                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                    m.status === 'Selesai' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'
+                  }`}>
+                    {m.status}
+                  </div>
+                  <button 
+                    onClick={() => handleOpenEditModal(m)}
+                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                    title="Ubah Risalah"
+                  >
+                    <Edit2 size={16} />
+                  </button>
                 </div>
               </div>
 
@@ -221,22 +267,22 @@ const MeetingMinutes: React.FC<{ activeDivision: DivisionType }> = ({ activeDivi
 
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 sticky top-0">
-              <h3 className="font-bold text-slate-800">Buat Risalah Rapat Baru</h3>
+              <h3 className="font-bold text-slate-800">{isEditMode ? 'Ubah Risalah Rapat' : 'Buat Risalah Rapat Baru'}</h3>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleAddMeeting} className="p-6 space-y-4">
+            <form onSubmit={handleSaveMeeting} className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tujuan/Judul Rapat</label>
-                  <input type="text" required value={newMeeting.purpose} onChange={e => setNewMeeting({...newMeeting, purpose: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: Evaluasi Katering Mekkah" />
+                  <input type="text" required value={newMeeting.purpose} onChange={e => setNewMeeting({...newMeeting, purpose: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 bg-white" placeholder="Contoh: Evaluasi Katering Mekkah" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jenis Rapat</label>
-                  <select value={newMeeting.type} onChange={e => setNewMeeting({...newMeeting, type: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500">
+                  <select value={newMeeting.type} onChange={e => setNewMeeting({...newMeeting, type: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 bg-white">
                     <option value="Briefing">Briefing</option>
                     <option value="Evaluasi">Evaluasi</option>
                     <option value="Harian">Harian</option>
@@ -247,29 +293,40 @@ const MeetingMinutes: React.FC<{ activeDivision: DivisionType }> = ({ activeDivi
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jam Mulai</label>
+                  <input type="time" required value={newMeeting.startTime} onChange={e => setNewMeeting({...newMeeting, startTime: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 bg-white" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jam Selesai</label>
+                  <input type="time" required value={newMeeting.endTime} onChange={e => setNewMeeting({...newMeeting, endTime: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 bg-white" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Lokasi</label>
-                  <input type="text" required value={newMeeting.location} onChange={e => setNewMeeting({...newMeeting, location: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ruang Rapat 1 / Zoom" />
+                  <input type="text" required value={newMeeting.location} onChange={e => setNewMeeting({...newMeeting, location: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 bg-white" placeholder="Ruang Rapat 1 / Zoom" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Peserta (Pisahkan koma)</label>
-                  <input type="text" required value={newMeeting.participants} onChange={e => setNewMeeting({...newMeeting, participants: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Ahmad, Budi, Siti" />
+                  <input type="text" required value={newMeeting.participants} onChange={e => setNewMeeting({...newMeeting, participants: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 bg-white" placeholder="Ahmad, Budi, Siti" />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Risalah / Notulen</label>
-                <textarea required rows={4} value={newMeeting.minutes} onChange={e => setNewMeeting({...newMeeting, minutes: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Tuliskan poin-poin pembahasan rapat..."></textarea>
+                <textarea required rows={4} value={newMeeting.minutes} onChange={e => setNewMeeting({...newMeeting, minutes: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-slate-900 bg-white" placeholder="Tuliskan poin-poin pembahasan rapat..."></textarea>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1 text-rose-500">Isu / Kendala (Opsional)</label>
-                <input type="text" value={newMeeting.issues} onChange={e => setNewMeeting({...newMeeting, issues: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-rose-500 text-sm" placeholder="Contoh: Vendor lambat merespon" />
+                <input type="text" value={newMeeting.issues} onChange={e => setNewMeeting({...newMeeting, issues: e.target.value})} className="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-rose-500 text-sm text-slate-900 bg-white" placeholder="Contoh: Vendor lambat merespon" />
               </div>
 
               <div className="pt-4">
                 <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
                   <Save size={18} />
-                  Simpan Risalah
+                  {isEditMode ? 'Perbarui Risalah' : 'Simpan Risalah'}
                 </button>
               </div>
             </form>

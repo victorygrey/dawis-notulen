@@ -1,8 +1,10 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { DivisionType, User } from '../types';
+// Added TaskStatus to the imported types from '../types'
+import { DivisionType, User, DailyActivity, Approval, Role, TaskStatus } from '../types';
 import { Activity, CheckCircle, Clock, AlertCircle, FileText } from 'lucide-react';
 
 const chartData = [
@@ -17,7 +19,7 @@ const chartData = [
 
 interface StatCardProps {
   title: string;
-  value: string;
+  value: string | number;
   sub: string;
   icon: React.ReactNode;
   color: string;
@@ -47,12 +49,48 @@ const CalendarCheckIcon = ({ size, className }: { size: number; className?: stri
 );
 
 const Dashboard: React.FC<{ user: User; activeDivision: DivisionType }> = ({ user, activeDivision }) => {
+  const [stats, setStats] = useState({
+    completed: 0,
+    ongoing: 0,
+    pendingApproval: 0,
+    issues: 0
+  });
+
+  useEffect(() => {
+    const activities: DailyActivity[] = JSON.parse(localStorage.getItem('syncops_activities') || '[]');
+    const approvals: Approval[] = JSON.parse(localStorage.getItem('syncops_approvals') || '[]');
+    const meetings = JSON.parse(localStorage.getItem('syncops_meetings') || '[]');
+
+    const divActivities = activities.filter(a => user.divisions.includes(a.divisionId));
+    
+    // Calculate inbox approvals (items the current user needs to sign)
+    const inboxCount = approvals.filter(app => {
+      if (user.role === Role.DIRECTOR) {
+        return (app.requesterRole === Role.MANAGER || app.requesterRole === Role.SUBADMIN) && 
+               user.divisions.includes(app.division) && app.status === 'PENDING';
+      }
+      if (user.role === Role.MANAGER || user.role === Role.SUBADMIN) {
+        return app.requesterRole === Role.STAFF && 
+               user.divisions.includes(app.division) && app.status === 'PENDING';
+      }
+      return false;
+    }).length;
+
+    setStats({
+      // Fixed TaskStatus comparison by using enum members directly
+      completed: divActivities.filter(a => a.status === TaskStatus.SELESAI).length,
+      ongoing: divActivities.filter(a => a.status === TaskStatus.PROSES).length,
+      pendingApproval: inboxCount,
+      issues: meetings.filter((m: any) => m.division === activeDivision && m.issues).length
+    });
+  }, [user, activeDivision]);
+
   return (
     <div className="space-y-6">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Welcome Back, {user.name}!</h2>
-          <p className="text-slate-500">Monitoring operations for <span className="text-indigo-600 font-semibold">{activeDivision}</span></p>
+          <h2 className="text-2xl font-bold text-slate-900">Halo, {user.name.split(' ')[0]}!</h2>
+          <p className="text-slate-500 text-sm">Berikut ringkasan operasional <span className="text-indigo-600 font-semibold">{activeDivision}</span> hari ini.</p>
         </div>
         <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-slate-200 text-sm shadow-sm">
           <CalendarCheckIcon size={16} className="text-slate-400" />
@@ -61,16 +99,16 @@ const Dashboard: React.FC<{ user: User; activeDivision: DivisionType }> = ({ use
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Task Completed" value="24" sub="+12% from last week" icon={<CheckCircle size={24} />} color="bg-emerald-500 text-emerald-600" />
-        <StatCard title="Ongoing Tasks" value="8" sub="3 tasks near deadline" icon={<Activity size={24} />} color="bg-blue-500 text-blue-600" />
-        <StatCard title="Pending Approval" value="12" sub="Requires your action" icon={<Clock size={24} />} color="bg-orange-500 text-orange-600" />
-        <StatCard title="Issues/Blockers" value="2" sub="High priority items" icon={<AlertCircle size={24} />} color="bg-rose-500 text-rose-600" />
+        <StatCard title="Tugas Selesai" value={stats.completed} sub="Total tugas tuntas" icon={<CheckCircle size={24} />} color="bg-emerald-500 text-emerald-600" />
+        <StatCard title="Tugas Berjalan" value={stats.ongoing} sub="Sedang dikerjakan" icon={<Activity size={24} />} color="bg-blue-500 text-blue-600" />
+        <StatCard title="Butuh Approval" value={stats.pendingApproval} sub="Menunggu tanda tangan" icon={<Clock size={24} />} color="bg-orange-500 text-orange-600" />
+        <StatCard title="Isu Rapat" value={stats.issues} sub="Kendala terdeteksi" icon={<AlertCircle size={24} />} color="bg-rose-500 text-rose-600" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="font-semibold text-slate-800">Weekly Performance</h3>
+            <h3 className="font-semibold text-slate-800">Performa Mingguan</h3>
             <div className="flex gap-4 text-xs">
               <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-indigo-500"></div> Selesai</span>
               <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-indigo-200"></div> Pending</span>
@@ -94,7 +132,7 @@ const Dashboard: React.FC<{ user: User; activeDivision: DivisionType }> = ({ use
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-6">Recent Division Activity</h3>
+          <h3 className="font-semibold text-slate-800 mb-6">Aktivitas Divisi Terkini</h3>
           <div className="space-y-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100">
@@ -102,11 +140,11 @@ const Dashboard: React.FC<{ user: User; activeDivision: DivisionType }> = ({ use
                   <FileText size={18} />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-800">Briefing Harian Logistik</p>
-                  <p className="text-xs text-slate-500">Dibuat oleh Budi • {i} jam yang lalu</p>
+                  <p className="text-sm font-semibold text-slate-800">Update Log Harian</p>
+                  <p className="text-xs text-slate-500">Divisi {activeDivision} • {i} jam yang lalu</p>
                 </div>
                 <div className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded uppercase">
-                  Logistik
+                  AKTIF
                 </div>
               </div>
             ))}

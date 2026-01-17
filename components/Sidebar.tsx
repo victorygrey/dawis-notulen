@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { MENU_ITEMS, DIVISIONS } from '../constants';
-import { DivisionType, User } from '../types';
+import { DivisionType, User, Role } from '../types';
 import { ChevronRight, LogOut } from 'lucide-react';
 
 interface SidebarProps {
@@ -20,6 +21,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   user,
   onLogout
 }) => {
+  // Filter menu items based on user role
+  const visibleMenuItems = MENU_ITEMS.filter(item => {
+    if ((item as any).adminOnly) {
+      return user.role === Role.MANAGER || user.role === Role.DIRECTOR;
+    }
+    return true;
+  });
+
   return (
     <div className="w-64 bg-slate-900 text-white flex flex-col h-screen fixed left-0 top-0 z-50 shadow-xl transition-all duration-300">
       <div className="p-6 flex items-center gap-3 border-b border-slate-800">
@@ -50,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
-        {MENU_ITEMS.map((item) => (
+        {visibleMenuItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setActivePage(item.id)}

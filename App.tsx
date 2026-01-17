@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DivisionType, User } from './types';
 import Sidebar from './components/Sidebar';
@@ -6,6 +7,7 @@ import TaskTracker from './components/TaskTracker';
 import MeetingMinutes from './components/MeetingMinutes';
 import ApprovalSystem from './components/ApprovalSystem';
 import DivisionModules from './components/DivisionModules';
+import UserManagement from './components/UserManagement';
 import Login from './components/Login';
 
 const App: React.FC = () => {
@@ -80,6 +82,8 @@ const App: React.FC = () => {
         return <ApprovalSystem activeDivision={currentDiv} />;
       case 'division_module':
         return <DivisionModules activeDivision={currentDiv} />;
+      case 'users':
+        return <UserManagement />;
       default:
         return <Dashboard user={user} activeDivision={currentDiv} />;
     }

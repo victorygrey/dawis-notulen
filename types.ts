@@ -3,7 +3,8 @@ export enum Role {
   STAFF = 'STAFF',
   PIC = 'PIC',
   MANAGER = 'MANAGER',
-  DIRECTOR = 'DIRECTOR'
+  DIRECTOR = 'DIRECTOR',
+  SUBADMIN = 'SUBADMIN'
 }
 
 export enum DivisionType {
@@ -12,28 +13,37 @@ export enum DivisionType {
   OPRS = 'OPERASIONAL',
   KEUANGAN = 'KEUANGAN',
   LOGISTIK = 'LOGISTIK-PU',
-  IT = 'IT'
+  IT = 'IT',
+  MARKETING = 'MARKETING',
+  DIGITAL_MARKETING = 'DIGITAL MARKETING',
+  PRODUKSI = 'PRODUKSI',
+  MANAJEMEN = 'MANAJEMEN'
 }
 
 export interface User {
   id: string;
+  nik?: string;
   name: string;
   role: Role;
   divisions: DivisionType[];
+  email?: string;
 }
 
 export enum TaskStatus {
-  BELUM = 'BELUM',
-  PROSES = 'PROSES',
+  BELUM = 'BELUM DIMULAI',
+  PROSES = 'PROGRESS',
   SELESAI = 'SELESAI',
-  ON_PROGRESS = 'ON PROGRESS'
+  PENDING = 'PENDING'
 }
 
 export interface DailyActivity {
   id: string;
   userId: string;
+  userName?: string;
   divisionId: DivisionType;
-  date: string;
+  date: string; 
+  startDate: string;
+  endDate: string;
   startTime: string;
   endTime: string;
   taskName: string;
@@ -41,6 +51,8 @@ export interface DailyActivity {
   progress: number;
   status: TaskStatus;
   evidenceIds: string[];
+  externalLink?: string;
+  approvalStatus?: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION';
 }
 
 export interface MeetingMinute {
@@ -71,12 +83,14 @@ export interface KPI {
 
 export interface Approval {
   id: string;
+  activityId: string;
   title: string;
   requesterId: string;
+  requesterName: string;
+  requesterRole: Role;
   division: DivisionType;
   status: 'PENDING' | 'REJECTED' | 'APPROVED' | 'REVISION';
-  currentStep: number;
-  totalSteps: number;
+  dateSubmitted: string;
   history: {
     step: number;
     approverName: string;
@@ -89,7 +103,7 @@ export interface Approval {
 export interface Evidence {
   id: string;
   name: string;
-  type: 'IMAGE' | 'PDF' | 'EXCEL' | 'DRIVE' | 'ARCHIVE';
+  type: 'IMAGE' | 'PDF' | 'EXCEL' | 'DOC' | 'LINK';
   url: string;
   uploadedAt: string;
 }
