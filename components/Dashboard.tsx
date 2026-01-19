@@ -3,9 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-// Added TaskStatus to the imported types from '../types'
 import { DivisionType, User, DailyActivity, Approval, Role, TaskStatus } from '../types';
-import { Activity, CheckCircle, Clock, AlertCircle, FileText } from 'lucide-react';
+import { Activity, CheckCircle, Clock, AlertCircle, FileText, Calendar } from 'lucide-react';
 
 const chartData = [
   { name: 'Mon', completed: 4, pending: 2 },
@@ -26,26 +25,17 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, sub, icon, color }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start justify-between">
-    <div>
-      <p className="text-sm text-slate-500 font-medium mb-1">{title}</p>
-      <h3 className="text-2xl font-bold text-slate-900">{value}</h3>
-      <p className="text-xs text-slate-400 mt-1">{sub}</p>
+  <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between hover:shadow-md transition-shadow">
+    <div className="overflow-hidden">
+      <p className="text-[10px] md:text-xs text-slate-500 font-black uppercase tracking-widest mb-1">{title}</p>
+      <h3 className="text-xl md:text-2xl font-black text-slate-900 leading-none">{value}</h3>
+      <p className="text-[9px] md:text-xs text-slate-400 mt-2 font-medium truncate">{sub}</p>
     </div>
-    <div className={`p-3 rounded-lg ${color} bg-opacity-10 text-opacity-100`}>
-      {icon}
+    <div className={`shrink-0 p-3 rounded-xl ${color} bg-opacity-10 text-opacity-100 shadow-inner`}>
+      {/* Fixed: Use React.ReactElement<any> to allow 'size' prop in cloneElement */}
+      {React.cloneElement(icon as React.ReactElement<any>, { size: 20 })}
     </div>
   </div>
-);
-
-const CalendarCheckIcon = ({ size, className }: { size: number; className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
-    <line x1="16" x2="16" y1="2" y2="6"/>
-    <line x1="8" x2="8" y1="2" y2="6"/>
-    <line x1="3" x2="21" y1="10" y2="10"/>
-    <path d="m9 16 2 2 4-4"/>
-  </svg>
 );
 
 const Dashboard: React.FC<{ user: User; activeDivision: DivisionType }> = ({ user, activeDivision }) => {
@@ -63,7 +53,6 @@ const Dashboard: React.FC<{ user: User; activeDivision: DivisionType }> = ({ use
 
     const divActivities = activities.filter(a => user.divisions.includes(a.divisionId));
     
-    // Calculate inbox approvals (items the current user needs to sign)
     const inboxCount = approvals.filter(app => {
       if (user.role === Role.DIRECTOR) {
         return (app.requesterRole === Role.MANAGER || app.requesterRole === Role.SUBADMIN) && 
@@ -77,7 +66,6 @@ const Dashboard: React.FC<{ user: User; activeDivision: DivisionType }> = ({ use
     }).length;
 
     setStats({
-      // Fixed TaskStatus comparison by using enum members directly
       completed: divActivities.filter(a => a.status === TaskStatus.SELESAI).length,
       ongoing: divActivities.filter(a => a.status === TaskStatus.PROSES).length,
       pendingApproval: inboxCount,
@@ -86,65 +74,68 @@ const Dashboard: React.FC<{ user: User; activeDivision: DivisionType }> = ({ use
   }, [user, activeDivision]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Halo, {user.name.split(' ')[0]}!</h2>
-          <p className="text-slate-500 text-sm">Berikut ringkasan operasional <span className="text-indigo-600 font-semibold">{activeDivision}</span> hari ini.</p>
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Halo, {user.name.split(' ')[0]}! 👋</h2>
+          <p className="text-slate-500 text-xs md:text-sm font-medium">Berikut ringkasan operasional <span className="text-indigo-600 font-bold">{activeDivision}</span> hari ini.</p>
         </div>
-        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-slate-200 text-sm shadow-sm">
-          <CalendarCheckIcon size={16} className="text-slate-400" />
-          <span className="font-medium text-slate-700">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+        <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs md:text-sm shadow-sm self-start md:self-center">
+          <Calendar size={16} className="text-indigo-500" />
+          <span className="font-bold text-slate-700">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Tugas Selesai" value={stats.completed} sub="Total tugas tuntas" icon={<CheckCircle size={24} />} color="bg-emerald-500 text-emerald-600" />
-        <StatCard title="Tugas Berjalan" value={stats.ongoing} sub="Sedang dikerjakan" icon={<Activity size={24} />} color="bg-blue-500 text-blue-600" />
-        <StatCard title="Butuh Approval" value={stats.pendingApproval} sub="Menunggu tanda tangan" icon={<Clock size={24} />} color="bg-orange-500 text-orange-600" />
-        <StatCard title="Isu Rapat" value={stats.issues} sub="Kendala terdeteksi" icon={<AlertCircle size={24} />} color="bg-rose-500 text-rose-600" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <StatCard title="Selesai" value={stats.completed} sub="Tugas tuntas" icon={<CheckCircle />} color="bg-emerald-500 text-emerald-600" />
+        <StatCard title="Berjalan" value={stats.ongoing} sub="Ongoing task" icon={<Activity />} color="bg-blue-500 text-blue-600" />
+        <StatCard title="Approval" value={stats.pendingApproval} sub="Antrian TTD" icon={<Clock />} color="bg-orange-500 text-orange-600" />
+        <StatCard title="Isu Rapat" value={stats.issues} sub="Kendala aktif" icon={<AlertCircle />} color="bg-rose-500 text-rose-600" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-semibold text-slate-800">Performa Mingguan</h3>
-            <div className="flex gap-4 text-xs">
+        <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest">Performa Mingguan</h3>
+            <div className="flex gap-4 text-[10px] font-black uppercase tracking-tighter">
               <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-indigo-500"></div> Selesai</span>
-              <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-indigo-200"></div> Pending</span>
+              <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-slate-200"></div> Pending</span>
             </div>
           </div>
-          <div className="h-64">
+          <div className="h-56 md:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} />
                 <Tooltip 
                   cursor={{fill: '#f8fafc'}}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', fontWeight: 800, fontSize: '12px' }}
                 />
-                <Bar dataKey="completed" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={32} />
-                <Bar dataKey="pending" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={32} />
+                <Bar dataKey="completed" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={24} />
+                <Bar dataKey="pending" fill="#e2e8f0" radius={[6, 6, 0, 0]} barSize={24} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <h3 className="font-semibold text-slate-800 mb-6">Aktivitas Divisi Terkini</h3>
-          <div className="space-y-4">
+        <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest">Aktivitas Terkini</h3>
+            <button className="text-[10px] font-black text-indigo-600 uppercase hover:underline">Lihat Semua</button>
+          </div>
+          <div className="space-y-3">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100">
-                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
+              <div key={i} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-100 group">
+                <div className="shrink-0 w-10 h-10 bg-slate-100 group-hover:bg-indigo-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-indigo-500 transition-colors">
                   <FileText size={18} />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-800">Update Log Harian</p>
-                  <p className="text-xs text-slate-500">Divisi {activeDivision} • {i} jam yang lalu</p>
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-xs md:text-sm font-black text-slate-800 truncate">Update Log: Progres Manifes Jamaah</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Divisi {activeDivision} • {i} jam yang lalu</p>
                 </div>
-                <div className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded uppercase">
-                  AKTIF
+                <div className="shrink-0 px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black rounded uppercase">
+                  LOG
                 </div>
               </div>
             ))}
